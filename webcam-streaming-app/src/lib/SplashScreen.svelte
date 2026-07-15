@@ -7,7 +7,7 @@
   let qrCodeDataUrl = $state(null);
 
   onMount(async () => {
-    const url = `${window.location.origin}/reading-room`;
+    const url = `${window.location.origin}/#/reading-room`;
     const QRCode = await import('qrcode').catch(() => null);
     if (QRCode) {
       qrCodeDataUrl = await QRCode.default.toDataURL(url, {

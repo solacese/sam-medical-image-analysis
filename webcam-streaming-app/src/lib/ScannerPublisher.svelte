@@ -139,7 +139,7 @@
     });
 
     if (sessionId) {
-      const viewerUrl = `${window.location.origin}/reading-room?sessionId=${sessionId}`;
+      const viewerUrl = `${window.location.origin}/#/reading-room?sessionId=${sessionId}`;
       const QRCode = await import('qrcode').catch(() => null);
       if (QRCode) {
         qrCodeDataUrl = await QRCode.default.toDataURL(viewerUrl, {

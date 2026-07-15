@@ -6,9 +6,12 @@
   import { SolaceVideoClient } from './lib/common/solace';
   import { APP_CONFIG } from './lib/common/config';
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlSessionId = urlParams.get('sessionId');
-  const isReadingRoomRoute = window.location.pathname === '/reading-room';
+  const pathParams = new URLSearchParams(window.location.search);
+  const hashIndex = window.location.hash.indexOf('?');
+  const hashQuery = hashIndex >= 0 ? window.location.hash.slice(hashIndex) : '';
+  const hashParams = new URLSearchParams(hashQuery);
+  const urlSessionId = pathParams.get('sessionId') || hashParams.get('sessionId');
+  const isReadingRoomRoute = window.location.pathname === '/reading-room' || window.location.hash.startsWith('#/reading-room');
 
   let currentView = $state(isReadingRoomRoute ? 'readingRoom' : 'splash');
   let solaceReady = $state(false);
