@@ -3,6 +3,8 @@ import type { AppConfig } from './types';
 export const APP_CONFIG: AppConfig = {
   videoTopic: import.meta.env.VITE_VIDEO_TOPIC || 'gehc/mri/scanner/feed',
   statusTopic: import.meta.env.VITE_STATUS_TOPIC || 'gehc/mri/scanner/status',
+  analysisTopic: import.meta.env.VITE_ANALYSIS_TOPIC || 'mri/position/v1/analyze/test',
+  resultTopic: import.meta.env.VITE_ANALYSIS_RESULT_TOPIC || 'mri/position/v1/result',
   solace: {
     url: import.meta.env.VITE_SOLACE_URL || 'ws://localhost:8008',
     vpnName: import.meta.env.VITE_SOLACE_VPN || 'default',
