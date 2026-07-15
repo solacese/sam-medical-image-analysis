@@ -12,6 +12,15 @@
   // MRI sequence labels cycled through for the overlay
   const SEQUENCES = ['T1 AXIAL', 'T2 FLAIR', 'T1 SAGITTAL', 'DWI', 'T2 CORONAL'];
 
+  const ANALYSIS_IMAGES = [
+    { filename: 'brain1.jpg', label: 'Brain 1' },
+    { filename: 'brain2.jpg', label: 'Brain 2' },
+    { filename: 'knee1.jpg', label: 'Knee 1' },
+    { filename: 'knee2.jpg', label: 'Knee 2' },
+    { filename: 'knee3.jpg', label: 'Knee 3' },
+    { filename: 'knee4.jpg', label: 'Knee 4' }
+  ];
+
   let videoEl = $state(null);
   let stream = $state(null);
   let status = $state('loading'); // loading | active | error | ready
@@ -22,11 +31,11 @@
   let sliceIndex = $state(0);
   let sequence = $state(SEQUENCES[0]);
   let qrCodeDataUrl = $state(null);
-
+  let analysisPayload = $state(null);
+  let analysisLoading = $state(false);
   let captureIntervalId = null;
   let statusIntervalId = null;
   let framePublishInFlight = false;
-
   const captureIntervalMs = $derived(Math.round(1000 / targetFps));
 
   async function startScanner() {
@@ -106,7 +115,29 @@
     }, 'image/jpeg', jpegQuality);
   }
 
+  async function simulateImageAnalysis(filename) {
+    analysisLoading = true;
+    analysisPayload = null;
+    solaceClient.publishControl(APP_CONFIG.analysisTopic, { file: filename });
+
+    if (DEMO_MODE) {
+      setTimeout(() => {
+        analysisPayload = {
+          file: filename,
+          status: 'demo-result',
+          analysis: 'This is a simulated analysis result for demo mode.'
+        };
+        analysisLoading = false;
+      }, 1400);
+    }
+  }
+
   onMount(async () => {
+    solaceClient.subscribeToTopic(APP_CONFIG.resultTopic, (payload) => {
+      analysisPayload = payload;
+      analysisLoading = false;
+    });
+
     if (sessionId) {
       const viewerUrl = `${window.location.origin}/reading-room?sessionId=${sessionId}`;
       const QRCode = await import('qrcode').catch(() => null);
@@ -119,12 +150,15 @@
     await startScanner();
   });
 
-  onDestroy(() => stopScanner());
+  onDestroy(() => {
+    stopScanner();
+    solaceClient.unsubscribeFromTopic(APP_CONFIG.resultTopic);
+  });
 </script>
 
-<div class="h-screen bg-gradient-to-br from-gehc-bg via-white to-gehc-bg flex flex-col overflow-hidden">
+<div class="min-h-screen bg-gradient-to-br from-gehc-bg via-white to-gehc-bg flex flex-col overflow-auto">
   <!-- Header -->
-  <header class="shrink-0 bg-white shadow-md border-b-4 border-gehc-purple">
+  <header class="relative z-30 shrink-0 bg-white shadow-md border-b-4 border-gehc-purple">
     <div class="container mx-auto px-4 py-3 flex items-center gap-3">
       <GELogo size={40} />
       <span class="hidden sm:inline text-sm font-semibold text-gehc-navy/60 border-l border-gehc-navy/15 pl-3 ml-1">
@@ -136,7 +170,7 @@
     </div>
   </header>
 
-  <main class="flex-1 min-h-0 flex items-center justify-center gap-4 p-4">
+  <main class="flex-1 min-h-0 flex items-start justify-center gap-4 p-4 pt-6">
 
     <!-- QR panel -->
     {#if qrCodeDataUrl}
@@ -148,10 +182,10 @@
     {/if}
 
     <!-- Scanner card -->
-    <div class="flex flex-col bg-white rounded-2xl shadow-xl overflow-hidden border-2 {status === 'active' ? 'border-gehc-purple' : 'border-gehc-purple-light/30'} transition-colors duration-300" style="height: 100%; aspect-ratio: 4 / 3;">
+    <div class="relative z-0 mt-4 flex flex-col bg-white rounded-2xl shadow-xl overflow-hidden border-2 {status === 'active' ? 'border-gehc-purple' : 'border-gehc-purple-light/30'} transition-colors duration-300 w-full max-w-[1180px] min-h-[680px]">
 
       <!-- Header bar -->
-      <div class="bg-gradient-to-r from-gehc-purple to-gehc-purple-deep px-4 py-2 flex items-center gap-3 min-w-0 shrink-0">
+      <div class="sticky top-0 relative z-30 bg-gradient-to-r from-gehc-purple to-gehc-purple-deep px-4 py-2 flex items-center gap-3 min-w-0 shrink-0">
         <h2 class="text-base font-display font-bold text-white shrink-0">Live Acquisition</h2>
         <div class="flex items-center gap-3 ml-auto shrink-0">
           {#if status === 'active'}
@@ -176,15 +210,15 @@
       </div>
 
       <!-- Video area -->
-      <div class="flex-1 min-h-0 bg-gradient-to-br from-gehc-ink via-[#0a0d1f] to-gehc-ink relative overflow-hidden">
-        <video
-          bind:this={videoEl}
-          autoplay playsinline muted
-          class="absolute inset-0 w-full h-full object-cover"
-          style="opacity: {status === 'active' ? 1 : 0};"
-        ></video>
+        <div class="w-full max-w-[920px] mx-auto bg-gradient-to-br from-gehc-ink via-[#0a0d1f] to-gehc-ink relative overflow-hidden z-0 aspect-[16/9]">
+          <video
+            bind:this={videoEl}
+            autoplay playsinline muted
+            class="absolute inset-0 w-full h-full object-cover"
+            style="opacity: {status === 'active' ? 1 : 0};"
+          ></video>
 
-        {#if status !== 'active'}
+          {#if status !== 'active'}
           <div class="absolute inset-0 flex items-center justify-center">
             <div class="text-center space-y-4 px-6">
               {#if status === 'loading'}
@@ -227,6 +261,58 @@
             {sessionVideoTopic}
           </div>
         {/if}
+      </div>
+
+      <div class="bg-slate-50/90 p-4 border-t border-gehc-purple-light/20">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-gehc-purple-deep">Simulate Analysis</p>
+          </div>
+          {#if analysisLoading}
+            <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
+              <span class="w-4 h-4 border-2 border-slate-300 border-t-gehc-purple rounded-full animate-spin"></span>
+              Awaiting analysis result...
+            </div>
+          {/if}
+        </div>
+
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {#each ANALYSIS_IMAGES as image}
+            <button
+              type="button"
+              onclick={() => simulateImageAnalysis(image.filename)}
+              class="group flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-3 text-left transition hover:border-gehc-purple hover:bg-gehc-purple/5"
+            >
+              <img src={`/images/${image.filename}`} alt={image.label} class="h-16 w-16 rounded-2xl object-cover border border-slate-200" />
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-slate-900 group-hover:text-gehc-purple">Simulate Image for Analysis</p>
+                <p class="text-xs text-slate-500 truncate">{image.filename}</p>
+              </div>
+              <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">{image.label}</span>
+            </button>
+          {/each}
+        </div>
+
+        <div class="mt-4 rounded-3xl border border-gehc-purple-light/30 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="text-sm font-semibold text-gehc-purple-deep">Analysis Result</p>
+              <p class="text-xs text-slate-500">Payload received from {APP_CONFIG.resultTopic}</p>
+            </div>
+            {#if analysisPayload && !analysisLoading}
+              <span class="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">Latest result</span>
+            {/if}
+          </div>
+          <div class="mt-3 min-h-[120px] rounded-3xl bg-slate-50 p-3 text-xs text-slate-700">
+            {#if analysisLoading}
+              <p class="text-slate-500">Waiting for the analysis result to arrive…</p>
+            {:else if analysisPayload}
+              <pre class="whitespace-pre-wrap break-words font-mono text-[12px] leading-5">{JSON.stringify(analysisPayload, null, 2)}</pre>
+            {:else}
+              <p class="text-slate-500">No analysis result yet. Click one of the test image cards above to publish a request.</p>
+            {/if}
+          </div>
+        </div>
       </div>
     </div>
   </main>

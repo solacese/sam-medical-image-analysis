@@ -8,6 +8,8 @@ export interface SolaceConfig {
 export interface AppConfig {
   videoTopic: string;
   statusTopic: string;
+  analysisTopic: string;
+  resultTopic: string;
   solace: SolaceConfig;
 }
 

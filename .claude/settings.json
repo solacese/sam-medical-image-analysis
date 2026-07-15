@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /tmp/aeroswift-ref/aersoswift-web-app && echo \"===PACKAGE.JSON===\" && cat package.json && echo \"===SOLACE.TS===\" && cat src/lib/common/solace.ts && echo \"===CONFIG.TS===\" && cat src/lib/common/config.ts && echo \"===TYPES.TS===\" && cat src/lib/common/types.ts)",
+      "Read(//private/tmp/aeroswift-ref/aersoswift-web-app/**)",
+      "Bash(cd /tmp/aeroswift-ref/aersoswift-web-app && echo \"===WEBCAMPUBLISHER===\" && cat src/lib/WebcamPublisher.svelte && echo \"===VIDEOFEEDVIEWER===\" && cat src/lib/VideoFeedViewer.svelte)"
+    ]
+  }
+}
