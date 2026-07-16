@@ -141,12 +141,7 @@
     analysisPayload = null;
     analysisHtml = '';
 
-    const payload = {
-      requestId: uuidv4(),
-      imageFile: filename,
-      studyTime: new Date().toISOString(),
-      sessionId: sessionId || 'simulator'
-    };
+    const payload = { file: filename };
 
     publishAnalysisRequest(payload);
 
@@ -155,7 +150,7 @@
       const demoText = [
         '# MRI Positioning Result',
         '',
-        `**Image:** ${filename}`,
+        `**File:** ${filename}`,
         '',
         '- Position: *Head First Supine*',
         '- Table location: **72 cm**',
@@ -167,7 +162,7 @@
         '- Confirm no motion artifacts.',
         '',
         '```json',
-        JSON.stringify({ requestId: payload.requestId, sessionId: payload.sessionId }, null, 2),
+        JSON.stringify(payload, null, 2),
         '```'
       ].join('\n');
 
@@ -381,7 +376,7 @@
         {/if}
       </div>
 
-      <div class="bg-slate-50 p-4 border-t border-slate-200 overflow-y-auto">
+      <div class="bg-slate-50 p-4 border-t border-slate-200 overflow-hidden flex-none">
         <div class="flex flex-col gap-3">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -396,7 +391,7 @@
             {/if}
           </div>
 
-          <div class="rounded-3xl border border-slate-200 bg-white p-4 min-h-[180px]">
+          <div class="rounded-3xl border border-slate-200 bg-white p-4 min-h-[180px] max-h-[280px] overflow-y-auto">
             {#if analysisLoading}
               <p class="text-slate-500">Awaiting the analysis result from {APP_CONFIG.resultTopic}...</p>
             {:else if analysisPayload}
