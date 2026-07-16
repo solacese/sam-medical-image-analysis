@@ -41,40 +41,45 @@
   let analysisPayload = $state(null);
   let analysisHtml = $state('');
   let analysisLoading = $state(false);
+  let analyzedImage = $state(null);
 
   let captureIntervalId = null;
   let statusIntervalId = null;
   let framePublishInFlight = false;
 
+  function repairUtf8Mojibake(text) {
+    // UTF-8 bytes decoded as Latin-1/Windows-1252 always show up as a lead byte
+    // (U+00C2-U+00F4) followed by a continuation byte (U+0080-U+00BF). If we do
+    // not see that pattern, the text is not mojibake and we leave it untouched.
+    if (!/[\u00C2-\u00F4][\u0080-\u00BF]/.test(text)) {
+      return text;
+    }
+    try {
+      const bytes = new Uint8Array([...text].map((char) => char.charCodeAt(0) & 0xff));
+      // fatal: true so a false positive (real Unicode that is not valid re-decoded
+      // UTF-8) throws and we keep the original instead of emitting replacement chars.
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch {
+      return text;
+    }
+  }
+
   function renderMarkdown(markdown) {
     if (!markdown) return '';
-    
-    // Decode HTML entities
-    let decoded = markdown
-      .replace(/&#10003;|&#x2713;|✓/g, '[CHECK]')
-      .replace(/&#10004;|&#x2714;|✔/g, '[OK]')
-      .replace(/&#10006;|&#x2718;|✖/g, '[X]')
-      .replace(/&#9679;|●/g, '•')
+
+    // Reverse UTF-8-as-Latin-1 mojibake so emoji reach the renderer intact.
+    const repaired = repairUtf8Mojibake(markdown);
+
+    // Decode HTML entities that some producers emit instead of raw characters.
+    const decoded = repaired
       .replace(/&nbsp;/g, ' ')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&apos;/g, "'")
       .replace(/&amp;/g, '&');
-    
-    // Replace emojis with text equivalents
-    const withoutEmojis = decoded
-      .replace(/✅|✔️|☑️/g, '[OK]')
-      .replace(/❌|❎|✖️/g, '[ERR]')
-      .replace(/⚠️|⚡/g, '[WARN]')
-      .replace(/🔄|🔁|↩️/g, '[RETRY]')
-      .replace(/🔗|🔐/g, '[LINK]')
-      .replace(/📋|📝|📄/g, '[INFO]')
-      .replace(/🟢|✓/g, '[OK]')
-      .replace(/🟡|◆/g, '[WAIT]')
-      .replace(/🔴|✗/g, '[ERROR]');
-    
-    return md.render(withoutEmojis);
+
+    return md.render(decoded);
   }
 
   function publishAnalysisRequest(payload) {
@@ -94,6 +99,7 @@
     analysisLoading = true;
     analysisPayload = null;
     analysisHtml = '';
+    analyzedImage = filename;
 
     const payload = { file: filename };
 
@@ -222,8 +228,8 @@
   });
 </script>
 
-<div class="h-screen bg-gradient-to-br from-gehc-bg via-white to-gehc-bg flex flex-col overflow-hidden">
-  <header class="shrink-0 bg-white shadow-md border-b-4 border-gehc-purple">
+<div class="min-h-screen bg-gradient-to-br from-gehc-bg via-white to-gehc-bg flex flex-col">
+  <header class="sticky top-0 z-10 shrink-0 bg-white shadow-md border-b-4 border-gehc-purple">
     <div class="container mx-auto px-4 py-3 flex items-center gap-3">
       <GELogo size={40} />
       <span class="hidden sm:inline text-sm font-semibold text-gehc-navy/60 border-l border-gehc-navy/15 pl-3 ml-1">
@@ -235,8 +241,8 @@
     </div>
   </header>
 
-  <main class="flex-1 min-h-0 flex flex-col md:flex-row items-stretch gap-4 p-4 overflow-hidden min-w-0">
-    <section class="w-full md:w-80 shrink-0 min-w-0 bg-white rounded-3xl border border-slate-200 shadow-xl p-4 flex flex-col gap-4 overflow-hidden">
+  <main class="flex-1 flex flex-col md:flex-row items-start gap-4 p-4 min-w-0">
+    <section class="w-full md:w-96 lg:w-[26rem] shrink-0 min-w-0 bg-white rounded-3xl border border-slate-200 shadow-xl p-5 flex flex-col gap-4">
       {#if qrCodeDataUrl}
         <div class="text-center space-y-3">
           <p class="text-xs font-semibold uppercase tracking-widest text-gehc-purple-deep">Scan to View Feed</p>
@@ -257,15 +263,15 @@
             <p class="text-xs text-slate-500">Use a preview card to publish a simulated analysis payload.</p>
           </div>
         </div>
-        <div class="mt-4 max-h-[360px] min-h-0 overflow-y-auto pr-1">
+        <div class="mt-4">
           <div class="grid gap-3">
             {#each ANALYSIS_IMAGES as image}
               <button
                 type="button"
                 onclick={() => simulateImageAnalysis(image.filename)}
-                class="group grid grid-cols-[72px_1fr] items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-gehc-purple hover:bg-gehc-purple/5"
+                class="group grid grid-cols-[96px_1fr] items-center gap-4 rounded-3xl border p-3 text-left transition {analyzedImage === image.filename ? 'border-gehc-purple bg-gehc-purple/5' : 'border-slate-200 bg-slate-50 hover:border-gehc-purple hover:bg-gehc-purple/5'}"
               >
-                <img src={`/images/${image.filename}`} alt={image.label} class="h-16 w-16 rounded-2xl object-cover border border-slate-200" />
+                <img src={`/images/${image.filename}`} alt={image.label} class="h-24 w-24 rounded-2xl object-cover border border-slate-200" />
                 <div class="min-w-0">
                   <p class="font-semibold text-slate-900 group-hover:text-gehc-purple">{image.label}</p>
                   <p class="text-xs text-slate-500 truncate">{image.filename}</p>
@@ -287,7 +293,7 @@
       </div>
     </section>
 
-    <section class="flex-1 flex flex-col overflow-hidden rounded-3xl border border-slate-200 shadow-xl bg-white">
+    <section class="flex-1 min-w-0 w-full flex flex-col overflow-hidden rounded-3xl border border-slate-200 shadow-xl bg-white">
       <div class="bg-gradient-to-r from-gehc-purple to-gehc-purple-deep px-5 py-4 text-white">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -306,10 +312,10 @@
         </div>
       </div>
 
-      <div class="flex-1 min-h-0 relative overflow-hidden bg-slate-950">
+      <div class="relative aspect-video w-full overflow-hidden bg-slate-950">
         <video bind:this={videoEl}
           autoplay playsinline muted
-          class="absolute inset-0 h-full w-full object-cover"
+          class="absolute inset-0 h-full w-full object-contain"
           style="opacity: {status === 'active' ? 1 : 0};"
         ></video>
         {#if status !== 'active'}
@@ -330,7 +336,7 @@
         {/if}
       </div>
 
-      <div class="bg-slate-50 p-4 border-t border-slate-200 overflow-hidden flex-none">
+      <div class="bg-slate-50 p-4 border-t border-slate-200 flex-1">
         <div class="flex flex-col gap-3">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -345,7 +351,17 @@
             {/if}
           </div>
 
-          <div class="rounded-3xl border border-slate-200 bg-white p-4 min-h-[180px] max-h-[280px] overflow-y-auto">
+          <div class="rounded-3xl border border-slate-200 bg-white p-4 min-h-[180px]">
+            {#if analyzedImage}
+              <figure class="mb-4 flex flex-col items-center gap-2 border-b border-slate-100 pb-4">
+                <img
+                  src={`/images/${analyzedImage}`}
+                  alt="Scan under analysis"
+                  class="max-h-80 w-auto max-w-full rounded-2xl border border-slate-200 object-contain"
+                />
+                <figcaption class="text-xs text-slate-500 font-mono">{analyzedImage}</figcaption>
+              </figure>
+            {/if}
             {#if analysisLoading}
               <p class="text-slate-500">Awaiting the analysis result from {APP_CONFIG.resultTopic}...</p>
             {:else if analysisPayload}
