@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { v4 as uuidv4 } from 'uuid';
+  import MarkdownIt from 'markdown-it';
   import { APP_CONFIG, SESSION_ID_ENABLED, DEMO_MODE } from './common/config';
   import GELogo from './GELogo.svelte';
 
@@ -8,6 +9,13 @@
 
   const sessionId = SESSION_ID_ENABLED ? uuidv4() : null;
   const sessionVideoTopic = sessionId ? `${APP_CONFIG.videoTopic}/${sessionId}` : APP_CONFIG.videoTopic;
+
+  const md = new MarkdownIt({
+    html: false,
+    linkify: true,
+    typographer: true,
+    breaks: true
+  });
 
   const SEQUENCES = ['T1 AXIAL', 'T2 FLAIR', 'T1 SAGITTAL', 'DWI', 'T2 CORONAL'];
   const ANALYSIS_IMAGES = [
@@ -38,89 +46,9 @@
   let statusIntervalId = null;
   let framePublishInFlight = false;
 
-  function escapeHtml(value) {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function formatInline(text) {
-    return text
-      .replace(/`([^`]+)`/g, '<code class="rounded px-1 bg-slate-100 text-slate-800">$1</code>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-gehc-purple underline">$1</a>');
-  }
-
   function renderMarkdown(markdown) {
     if (!markdown) return '';
-
-    const codeBlocks = [];
-    const placeholder = '___CODE_BLOCK_PLACEHOLDER___';
-
-    const text = markdown.replace(/```(?:([^\n]+)\n)?([\s\S]*?)```/g, (_, lang, code) => {
-      const formattedCode = `<pre class="rounded-3xl bg-slate-950 text-slate-100 overflow-x-auto p-3 text-[12px]"><code>${escapeHtml(code)}</code></pre>`;
-      const token = `${placeholder}${codeBlocks.length}___`;
-      codeBlocks.push(formattedCode);
-      return token;
-    });
-
-    const lines = text.split('\n');
-    let html = '';
-    let inList = false;
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-
-      if (!line && inList) {
-        html += '</ul>';
-        inList = false;
-      }
-
-      if (!line) continue;
-
-      if (line.startsWith(placeholder)) {
-        if (inList) {
-          html += '</ul>';
-          inList = false;
-        }
-        const index = Number(line.slice(placeholder.length, -3));
-        html += codeBlocks[index] ?? '';
-        continue;
-      }
-
-      const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
-      if (headingMatch) {
-        if (inList) { html += '</ul>'; inList = false; }
-        const level = headingMatch[1].length;
-        html += `<h${level} class="mt-4 mb-2 font-semibold text-slate-900">${formatInline(escapeHtml(headingMatch[2]))}</h${level}>`;
-        continue;
-      }
-
-      if (/^([-*_]){3,}$/.test(line)) {
-        if (inList) { html += '</ul>'; inList = false; }
-        html += '<hr class="my-4 border-slate-200" />';
-        continue;
-      }
-
-      const listMatch = line.match(/^[-*+]\s+(.+)$/);
-      if (listMatch) {
-        if (!inList) {
-          html += '<ul class="list-disc list-inside space-y-1 mb-3">';
-          inList = true;
-        }
-        html += `<li>${formatInline(escapeHtml(listMatch[1]))}</li>`;
-        continue;
-      }
-
-      html += `<p class="mb-3">${formatInline(escapeHtml(line))}</p>`;
-    }
-
-    if (inList) html += '</ul>';
-    return html;
+    return md.render(markdown);
   }
 
   function publishAnalysisRequest(payload) {
