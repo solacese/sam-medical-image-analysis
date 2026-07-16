@@ -16,3 +16,12 @@ export const APP_CONFIG: AppConfig = {
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export const SESSION_ID_ENABLED = import.meta.env.VITE_SESSION_ID_ENABLED === 'true';
+
+// Log loaded config for debugging
+if (typeof window !== 'undefined') {
+  console.log('📋 Config loaded:', {
+    solaceUrl: APP_CONFIG.solace.url,
+    vpn: APP_CONFIG.solace.vpnName,
+    demoMode: DEMO_MODE
+  });
+}
