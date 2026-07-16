@@ -49,8 +49,21 @@
   function renderMarkdown(markdown) {
     if (!markdown) return '';
     
-    // Replace common emojis with text equivalents for better compatibility
-    const withoutEmojis = markdown
+    // Decode HTML entities
+    let decoded = markdown
+      .replace(/&#10003;|&#x2713;|✓/g, '[CHECK]')
+      .replace(/&#10004;|&#x2714;|✔/g, '[OK]')
+      .replace(/&#10006;|&#x2718;|✖/g, '[X]')
+      .replace(/&#9679;|●/g, '•')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&');
+    
+    // Replace emojis with text equivalents
+    const withoutEmojis = decoded
       .replace(/✅|✔️|☑️/g, '[OK]')
       .replace(/❌|❎|✖️/g, '[ERR]')
       .replace(/⚠️|⚡/g, '[WARN]')
