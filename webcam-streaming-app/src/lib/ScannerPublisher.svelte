@@ -37,7 +37,6 @@
   let sliceIndex = $state(0);
   let sequence = $state(SEQUENCES[0]);
   let qrCodeDataUrl = $state(null);
-  let solaceReady = $state(false);
 
   let analysisPayload = $state(null);
   let analysisHtml = $state('');
@@ -47,13 +46,22 @@
   let statusIntervalId = null;
   let framePublishInFlight = false;
 
-  $effect(() => {
-    solaceReady = solaceClient.isReadyForPublish();
-  });
-
   function renderMarkdown(markdown) {
     if (!markdown) return '';
-    return md.render(markdown);
+    
+    // Replace common emojis with text equivalents for better compatibility
+    const withoutEmojis = markdown
+      .replace(/✅|✔️|☑️/g, '[OK]')
+      .replace(/❌|❎|✖️/g, '[ERR]')
+      .replace(/⚠️|⚡/g, '[WARN]')
+      .replace(/🔄|🔁|↩️/g, '[RETRY]')
+      .replace(/🔗|🔐/g, '[LINK]')
+      .replace(/📋|📝|📄/g, '[INFO]')
+      .replace(/🟢|✓/g, '[OK]')
+      .replace(/🟡|◆/g, '[WAIT]')
+      .replace(/🔴|✗/g, '[ERROR]');
+    
+    return md.render(withoutEmojis);
   }
 
   function publishAnalysisRequest(payload) {
@@ -262,10 +270,6 @@
           <div><span class="font-semibold">Frames</span>: {publishedCount}</div>
           <div><span class="font-semibold">Sequence</span>: {sequence}</div>
           <div><span class="font-semibold">Slice</span>: {sliceIndex}</div>
-          <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200">
-            <span class={`w-2 h-2 rounded-full ${solaceReady ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-            <p class="text-xs"><span class="font-semibold">{solaceReady ? 'Solace' : 'Solace (offline)'}</span>: {solaceReady ? 'Connected' : 'Connecting…'}</p>
-          </div>
         </div>
       </div>
     </section>
