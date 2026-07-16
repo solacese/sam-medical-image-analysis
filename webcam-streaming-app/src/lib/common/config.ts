@@ -19,7 +19,7 @@ export const SESSION_ID_ENABLED = import.meta.env.VITE_SESSION_ID_ENABLED === 't
 
 // Log loaded config for debugging
 if (typeof window !== 'undefined') {
-  console.log('📋 Config loaded:', {
+  console.log('[CONFIG] Loaded:', {
     solaceUrl: APP_CONFIG.solace.url,
     vpn: APP_CONFIG.solace.vpnName,
     demoMode: DEMO_MODE

@@ -44,9 +44,9 @@ export class SolaceVideoClient {
       factoryProps.profile = solace.SolclientFactoryProfiles.version10;
       solace.SolclientFactory.init(factoryProps);
       SolaceVideoClient.factoryInitialized = true;
-      console.log('✅ Solace factory initialized');
+      console.log('[OK] Solace factory initialized');
     } catch (error: unknown) {
-      console.error('❌ Failed to initialize Solace factory:', error);
+      console.error('[ERR] Failed to initialize Solace factory:', error);
       throw error;
     }
   }
@@ -68,7 +68,7 @@ export class SolaceVideoClient {
           reconnectRetryWaitInMsecs: 3000
         });
 
-        console.log(`🔗 Attempting Solace connection to: ${this.config.url} (VPN: ${this.config.vpnName})`);
+        console.log(`[CONNECT] Attempting Solace connection to: ${this.config.url} (VPN: ${this.config.vpnName})`);
         this.session = solace.SolclientFactory.createSession(sessionProperties);
 
         this.sessionEventCb = (sessionEvent: any) => {
@@ -76,22 +76,22 @@ export class SolaceVideoClient {
           const eventInfo = sessionEvent.infoStr || '';
 
           if (eventType === solace.SessionEventCode.UP_NOTICE) {
-            console.log('✅ Solace session connected');
+            console.log('[OK] Solace session connected');
             this.isConnected = true;
             resolve();
           } else if (eventType === solace.SessionEventCode.CONNECT_FAILED_ERROR) {
-            console.error('❌ Solace connection failed:', eventInfo);
+            console.error('[ERR] Solace connection failed:', eventInfo);
             this.isConnected = false;
             reject(new Error(`Connection failed: ${eventInfo}`));
           } else if (eventType === solace.SessionEventCode.DISCONNECTED) {
-            console.log('⚠️ Solace session disconnected');
+            console.log('[WARN] Solace session disconnected');
             this.isConnected = false;
           } else if (eventType === solace.SessionEventCode.SUBSCRIPTION_ERROR) {
-            console.error('❌ Solace subscription error:', eventInfo);
+            console.error('[ERR] Solace subscription error:', eventInfo);
           } else if (eventType === solace.SessionEventCode.RECONNECTING_NOTICE) {
-            console.log('🔄 Reconnecting to Solace broker...');
+            console.log('[RETRY] Reconnecting to Solace broker...');
           } else if (eventType === solace.SessionEventCode.RECONNECTED_NOTICE) {
-            console.log('✅ Reconnected to Solace broker');
+            console.log('[OK] Reconnected to Solace broker');
           }
         };
 
@@ -106,7 +106,7 @@ export class SolaceVideoClient {
 
         this.session.connect();
       } catch (error: unknown) {
-        console.error('❌ Failed to create Solace session:', error);
+        console.error('[ERR] Failed to create Solace session:', error);
         reject(error);
       }
     });
@@ -299,7 +299,7 @@ export class SolaceVideoClient {
       return;
     }
     if (!this.session || !this.isConnected || 'demo' in this.session) {
-      console.warn(`⚠️ Cannot publish to ${topic}: session not ready (connected=${this.isConnected})`);
+      console.warn(`[WARN] Cannot publish to ${topic}: session not ready (connected=${this.isConnected})`);
       return;
     }
 
@@ -309,7 +309,7 @@ export class SolaceVideoClient {
       message.setBinaryAttachment(JSON.stringify(payload));
       message.setDeliveryMode(solace.MessageDeliveryModeType.DIRECT);
       this.session.send(message);
-      console.log(`✅ Published to ${topic}:`, payload);
+      console.log(`[OK] Published to ${topic}:`, payload);
     } catch (error: unknown) {
       console.error('Failed to publish control message:', error);
     }
