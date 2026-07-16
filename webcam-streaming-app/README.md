@@ -12,7 +12,7 @@ The architecture is adapted from the [aeroswift-ai web app](https://github.com/T
 
 ### Session IDs & QR codes
 
-When `VITE_SESSION_ID_ENABLED=true`, the scanner appends a UUID to its video topic and renders a QR code that deep-links to `/reading-room?sessionId=<uuid>` so a remote device can subscribe to that specific scanner.
+When `VITE_SESSION_ID_ENABLED=true`, the scanner appends a UUID to its video topic and renders a QR code that deep-links to `/?view=reading-room&sessionId=<uuid>` so a remote device can subscribe to that specific scanner. The route is carried as a query param on the root path (rather than a `/reading-room` subpath) so the QR link resolves on any static host without needing SPA rewrite rules.
 
 ## Getting started
 

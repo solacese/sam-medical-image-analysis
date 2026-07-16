@@ -209,7 +209,7 @@
 
   onMount(async () => {
     if (sessionId) {
-      const viewerUrl = `${window.location.origin}/reading-room?sessionId=${sessionId}`;
+      const viewerUrl = `${window.location.origin}/?view=reading-room&sessionId=${sessionId}`;
       const QRCode = await import('qrcode').catch(() => null);
       if (QRCode) {
         qrCodeDataUrl = await QRCode.default.toDataURL(viewerUrl, {
@@ -247,7 +247,7 @@
         <div class="text-center space-y-3">
           <p class="text-xs font-semibold uppercase tracking-widest text-gehc-purple-deep">Scan to View Feed</p>
           <img src={qrCodeDataUrl} alt="QR code for the reading room feed" class="mx-auto h-44 w-44 rounded-2xl border border-slate-200" />
-          <p class="text-[10px] text-slate-500 font-mono">/reading-room</p>
+          <p class="text-[10px] text-slate-500 font-mono">?view=reading-room</p>
         </div>
       {/if}
 

@@ -8,7 +8,11 @@
 
   const urlParams = new URLSearchParams(window.location.search);
   const urlSessionId = urlParams.get('sessionId');
-  const isReadingRoomRoute = window.location.pathname === '/reading-room';
+  // Route via query param on the root path so QR-scanned deep links never 404
+  // on hosts without SPA rewrite rules. The legacy /reading-room path is still
+  // honored for any older links.
+  const isReadingRoomRoute =
+    urlParams.get('view') === 'reading-room' || window.location.pathname === '/reading-room';
 
   let currentView = $state(isReadingRoomRoute ? 'readingRoom' : 'splash');
   let solaceReady = $state(false);
