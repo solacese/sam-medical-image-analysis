@@ -68,6 +68,7 @@ export class SolaceVideoClient {
           reconnectRetryWaitInMsecs: 3000
         });
 
+        console.log(`🔗 Attempting Solace connection to: ${this.config.url} (VPN: ${this.config.vpnName})`);
         this.session = solace.SolclientFactory.createSession(sessionProperties);
 
         this.sessionEventCb = (sessionEvent: any) => {
@@ -293,7 +294,11 @@ export class SolaceVideoClient {
 
   /** Publish a JSON control/status message. */
   publishControl(topic: string, payload: any): void {
-    if (DEMO_MODE || !this.session || !this.isConnected || 'demo' in this.session) return;
+    if (DEMO_MODE) return;
+    if (!this.session || !this.isConnected || 'demo' in this.session) {
+      console.warn(`⚠️ Cannot publish to ${topic}: session not ready (connected=${this.isConnected})`);
+      return;
+    }
 
     try {
       const message = solace.SolclientFactory.createMessage();
@@ -301,6 +306,7 @@ export class SolaceVideoClient {
       message.setBinaryAttachment(JSON.stringify(payload));
       message.setDeliveryMode(solace.MessageDeliveryModeType.DIRECT);
       this.session.send(message);
+      console.log(`✅ Published to ${topic}:`, payload);
     } catch (error: unknown) {
       console.error('Failed to publish control message:', error);
     }
@@ -346,6 +352,21 @@ export class SolaceVideoClient {
       }
     } catch (error: unknown) {
       console.error('Failed to unsubscribe from topic:', error);
+    }
+  }
+
+  /** Check if the Solace session is connected. */
+  isReadyForPublish(): boolean {
+    return this.isConnected && this.session !== null && !('demo' in this.session);
+  }
+
+  /** Disconnect the Solace session. */
+  disconnect(): void {
+    if (DEMO_MODE || !this.session || 'demo' in this.session) return;
+    try {
+      (this.session as solace.Session).disconnect();
+    } catch (error: unknown) {
+      console.error('Error disconnecting:', error);
     }
   }
 
