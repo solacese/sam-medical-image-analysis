@@ -7,6 +7,7 @@
   let qrCodeDataUrl = $state(null);
 
   onMount(async () => {
+    if (SESSION_ID_ENABLED) return; // Reading Room card (and its QR) is hidden in session mode
     const url = `${window.location.origin}/?view=reading-room`;
     const QRCode = await import('qrcode').catch(() => null);
     if (QRCode) {
@@ -44,7 +45,7 @@
 
   <!-- Cards -->
   <div class="relative z-10 flex-1 flex items-center justify-center px-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl w-full">
+    <div class="grid grid-cols-1 gap-5 w-full {SESSION_ID_ENABLED ? 'max-w-md' : 'md:grid-cols-2 max-w-3xl'}">
 
       <!-- Scanner Console -->
       <button
@@ -65,7 +66,8 @@
         </span>
       </button>
 
-      <!-- Reading Room -->
+      <!-- Reading Room — hidden when session IDs are enabled (accessed via the scanner's per-session QR code instead) -->
+      {#if !SESSION_ID_ENABLED}
       <button
         onclick={() => onReadingRoom?.()}
         class="group text-left bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gehc-purple-light/60 backdrop-blur-sm rounded-2xl p-6 transition-all duration-300 hover:shadow-[0_0_40px_rgba(123,97,255,0.3)]"
@@ -85,6 +87,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
         </span>
       </button>
+      {/if}
 
     </div>
   </div>
