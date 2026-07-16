@@ -294,7 +294,10 @@ export class SolaceVideoClient {
 
   /** Publish a JSON control/status message. */
   publishControl(topic: string, payload: any): void {
-    if (DEMO_MODE) return;
+    if (DEMO_MODE) {
+      console.log(`✅ [DEMO] Published to ${topic}:`, payload);
+      return;
+    }
     if (!this.session || !this.isConnected || 'demo' in this.session) {
       console.warn(`⚠️ Cannot publish to ${topic}: session not ready (connected=${this.isConnected})`);
       return;
@@ -314,7 +317,11 @@ export class SolaceVideoClient {
 
   /** Publish a single JPEG video frame to the given topic. */
   publishVideoFrame(topic: string, jpegBuffer: ArrayBuffer): void {
-    if (DEMO_MODE || !this.session || !this.isConnected || 'demo' in this.session) return;
+    if (DEMO_MODE) {
+      console.log(`✅ [DEMO] Published video frame to ${topic} (${jpegBuffer.byteLength} bytes)`);
+      return;
+    }
+    if (!this.session || !this.isConnected || 'demo' in this.session) return;
 
     try {
       const frameId = String(this.frameCounter++);
